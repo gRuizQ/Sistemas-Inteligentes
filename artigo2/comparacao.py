@@ -1,9 +1,15 @@
+import os
+
 import utils
+import algoritmo_cart as cart
+import random_forest as rf
 from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
+BASE_DIR = os.path.dirname(__file__)
+
 # 1. Preparação dos dados
-arquivo_treino = '02_treino_sinais_vitais_com_label.txt'
+arquivo_treino = os.path.join(BASE_DIR, '02_treino_sinais_vitais_com_label.txt')
 X_train_s, X_test_s, y_reg_train, y_reg_test, y_clf_train, y_clf_test, scaler = utils.preparar_dados(arquivo_treino)
 
 # 2. Definindo os dicionários de modelos para testar (Diferentes algoritmos e parâmetros)
@@ -11,13 +17,21 @@ modelos_para_regressao = {
     "MLP_10_5": MLPRegressor(hidden_layer_sizes=(10, 5), solver='lbfgs', max_iter=5000, random_state=42),
     "MLP_10_5_5": MLPRegressor(hidden_layer_sizes=(10, 5, 5), solver='lbfgs', max_iter=5000, random_state=42),
     "RandomForest_Default": RandomForestRegressor(random_state=42),
-    "RandomForest_100_Trees": RandomForestRegressor(n_estimators=100, max_depth=5, random_state=42),
+    "RandomForest_100_Trees": RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42),
+    "CART_Custom": cart.CARTDecisionTreeRegressor(random_state=42),
+    "RandomForest_Custom": rf.RandomForestRegressorCustom(
+        n_estimators=300, random_state=42
+    ),
 }
 
 modelos_para_classificacao = {
     "MLP_10_5": MLPClassifier(hidden_layer_sizes=(10, 5), solver='lbfgs', max_iter=5000, random_state=42),
     "MLP_10_5_5": MLPClassifier(hidden_layer_sizes=(10, 5, 5), solver='lbfgs', max_iter=5000, random_state=42),
     "RandomForest_Default": RandomForestClassifier(random_state=42),
+    "CART_Custom": cart.CARTDecisionTreeClassifier(random_state=42),
+    "RandomForest_Custom": rf.RandomForestClassifierCustom(
+        n_estimators=300, random_state=42
+    ),
 }
 
 # 3. Treino e Avaliação em Lote
@@ -30,8 +44,8 @@ resultados_classificacao = utils.comparar_modelos(
 )
 
 # 4. Geração do teste cego (Selecionando o melhor modelo manualmente após ver o console)
-arquivo_cego = '01_treino_sinais_vitais_sem_label.txt'
-arquivo_saida = 'resultados_predicao.csv'
+arquivo_cego = os.path.join(BASE_DIR, '01_treino_sinais_vitais_sem_label.txt')
+arquivo_saida = os.path.join(BASE_DIR, 'resultados_predicao.csv')
 
 # Suponha que ao analisar o console, a MLP (10, 5, 5) foi a melhor na regressão 
 # e a Random Forest foi a melhor na classificação:

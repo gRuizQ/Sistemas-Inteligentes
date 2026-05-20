@@ -1,7 +1,11 @@
+import os
+
 import utils
 from sklearn.neural_network import MLPRegressor, MLPClassifier
 
-arquivo_treino = '02_treino_sinais_vitais_com_label.txt'
+BASE_DIR = os.path.dirname(__file__)
+
+arquivo_treino = os.path.join(BASE_DIR, '02_treino_sinais_vitais_com_label.txt')
 X_train_s, X_test_s, y_reg_train, y_reg_test, y_clf_train, y_clf_test, scaler = utils.preparar_dados(arquivo_treino)
 
 # 2. Instanciando os modelos
@@ -18,8 +22,8 @@ modelo_clf_treinado = utils.treinar_e_avaliar_classificacao(
 )
 
 # 4. Geração do teste cego
-arquivo_cego = '01_treino_sinais_vitais_sem_label.txt'
-arquivo_saida = 'resultados_predicao.csv'
+arquivo_cego = os.path.join(BASE_DIR, '01_treino_sinais_vitais_sem_label.txt')
+arquivo_saida = os.path.join(BASE_DIR, 'resultados_predicao.csv')
 
 utils.gerar_arquivo_teste_cego(
     filepath_entrada=arquivo_cego,
