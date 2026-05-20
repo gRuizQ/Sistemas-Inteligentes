@@ -147,24 +147,40 @@ class CARTDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         base_impurity = _gini(y_encoded, self.n_classes_)
 
         for feature_index in feature_candidates:
-            thresholds = _candidate_thresholds(X[:, feature_index])
-            if thresholds.size == 0:
-                continue
             x_col = X[:, feature_index]
-            for threshold in thresholds:
-                left_mask = x_col <= threshold
-                right_mask = ~left_mask
-                n_left = int(np.sum(left_mask))
-                n_right = n_samples - n_left
-                if n_left < self.min_samples_leaf or n_right < self.min_samples_leaf:
-                    continue
-                impurity_left = _gini(y_encoded[left_mask], self.n_classes_)
-                impurity_right = _gini(y_encoded[right_mask], self.n_classes_)
-                weighted = (n_left / n_samples) * impurity_left + (n_right / n_samples) * impurity_right
-                if weighted < best_impurity:
-                    best_impurity = weighted
-                    best_feature = int(feature_index)
-                    best_threshold = float(threshold)
+            order = np.argsort(x_col, kind="mergesort")
+            x_sorted = x_col[order]
+            if x_sorted[0] == x_sorted[-1]:
+                continue
+            y_sorted = y_encoded[order]
+
+            n_left = np.arange(1, n_samples, dtype=int)
+            n_right = n_samples - n_left
+            valid = (n_left >= self.min_samples_leaf) & (n_right >= self.min_samples_leaf)
+            valid &= x_sorted[:-1] != x_sorted[1:]
+            if not np.any(valid):
+                continue
+
+            onehot = np.zeros((n_samples, self.n_classes_), dtype=float)
+            onehot[np.arange(n_samples), y_sorted] = 1.0
+            left_counts = np.cumsum(onehot, axis=0)[:-1]
+            right_counts = counts - left_counts
+
+            probs_left = left_counts / n_left[:, None]
+            probs_right = right_counts / n_right[:, None]
+            gini_left = 1.0 - np.sum(probs_left * probs_left, axis=1)
+            gini_right = 1.0 - np.sum(probs_right * probs_right, axis=1)
+            weighted = (n_left / n_samples) * gini_left + (n_right / n_samples) * gini_right
+
+            weighted_valid = weighted[valid]
+            best_pos_local = int(np.argmin(weighted_valid))
+            split_index = int(np.flatnonzero(valid)[best_pos_local])
+            best_impurity_local = float(weighted[split_index])
+
+            if best_impurity_local < best_impurity:
+                best_impurity = best_impurity_local
+                best_feature = int(feature_index)
+                best_threshold = float((x_sorted[split_index] + x_sorted[split_index + 1]) / 2.0)
 
         if best_feature is None:
             return _Node(value=proba)
@@ -238,24 +254,43 @@ class CARTDecisionTreeRegressor(BaseEstimator, RegressorMixin):
         )
 
         for feature_index in feature_candidates:
-            thresholds = _candidate_thresholds(X[:, feature_index])
-            if thresholds.size == 0:
-                continue
             x_col = X[:, feature_index]
-            for threshold in thresholds:
-                left_mask = x_col <= threshold
-                right_mask = ~left_mask
-                n_left = int(np.sum(left_mask))
-                n_right = n_samples - n_left
-                if n_left < self.min_samples_leaf or n_right < self.min_samples_leaf:
-                    continue
-                impurity_left = _mse(y[left_mask])
-                impurity_right = _mse(y[right_mask])
-                weighted = (n_left / n_samples) * impurity_left + (n_right / n_samples) * impurity_right
-                if weighted < best_impurity:
-                    best_impurity = weighted
-                    best_feature = int(feature_index)
-                    best_threshold = float(threshold)
+            order = np.argsort(x_col, kind="mergesort")
+            x_sorted = x_col[order]
+            if x_sorted[0] == x_sorted[-1]:
+                continue
+            y_sorted = y[order]
+
+            n_left = np.arange(1, n_samples, dtype=float)
+            n_right = n_samples - n_left
+            valid = (n_left >= self.min_samples_leaf) & (n_right >= self.min_samples_leaf)
+            valid &= x_sorted[:-1] != x_sorted[1:]
+            if not np.any(valid):
+                continue
+
+            y_cum = np.cumsum(y_sorted, dtype=float)
+            y2_cum = np.cumsum(y_sorted * y_sorted, dtype=float)
+            total_sum = float(y_cum[-1])
+            total_sum_sq = float(y2_cum[-1])
+
+            left_sum = y_cum[:-1]
+            left_sum_sq = y2_cum[:-1]
+            right_sum = total_sum - left_sum
+            right_sum_sq = total_sum_sq - left_sum_sq
+
+            mse_left = left_sum_sq / n_left - (left_sum / n_left) ** 2
+            mse_right = right_sum_sq / n_right - (right_sum / n_right) ** 2
+            weighted = (n_left / n_samples) * mse_left + (n_right / n_samples) * mse_right
+
+            weighted_valid = weighted[valid]
+            best_pos_local = int(np.argmin(weighted_valid))
+            split_index = int(np.flatnonzero(valid)[best_pos_local])
+            best_impurity_local = float(weighted[split_index])
+
+            if best_impurity_local < best_impurity:
+                best_impurity = best_impurity_local
+                best_feature = int(feature_index)
+                best_threshold = float((x_sorted[split_index] + x_sorted[split_index + 1]) / 2.0)
 
         if best_feature is None:
             return _Node(value=np.array([mean_value], dtype=float))

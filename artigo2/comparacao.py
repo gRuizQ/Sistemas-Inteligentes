@@ -17,7 +17,6 @@ modelos_para_regressao = {
     "MLP_10_5": MLPRegressor(hidden_layer_sizes=(10, 5), solver='lbfgs', max_iter=5000, random_state=42),
     "MLP_10_5_5": MLPRegressor(hidden_layer_sizes=(10, 5, 5), solver='lbfgs', max_iter=5000, random_state=42),
     "RandomForest_Default": RandomForestRegressor(random_state=42),
-    "RandomForest_100_Trees": RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42),
     "CART_Custom": cart.CARTDecisionTreeRegressor(random_state=42),
     "RandomForest_Custom": rf.RandomForestRegressorCustom(
         n_estimators=300, random_state=42

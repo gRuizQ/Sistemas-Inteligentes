@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import time
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, accuracy_score, precision_recall_fscore_support, confusion_matrix
@@ -34,12 +35,15 @@ def treinar_e_avaliar_regressao(modelo, X_train, y_train, X_test, y_test, nome_m
     Treina um modelo de regressão e avalia usando RMSE.
     Retorna o modelo treinado.
     """
+    inicio = time.perf_counter()
     modelo.fit(X_train, y_train)
     predicoes = modelo.predict(X_test)
+    tempo_total = time.perf_counter() - inicio
     
     rmse = np.sqrt(mean_squared_error(y_test, predicoes))
     print(f"--- RESULTADOS DA REGRESSÃO ({nome_modelo}) ---")
-    print(f"RMSE {nome_modelo}: {rmse:.4f}\n")
+    print(f"RMSE {nome_modelo}: {rmse:.4f}")
+    print(f"Tempo total ({nome_modelo}): {tempo_total:.4f} s\n")
     
     return modelo
 
@@ -49,8 +53,10 @@ def treinar_e_avaliar_classificacao(modelo, X_train, y_train, X_test, y_test, no
     Treina um modelo de classificação e exibe Acurácia, F1-Score e Matriz de Confusão.
     Retorna o modelo treinado.
     """
+    inicio = time.perf_counter()
     modelo.fit(X_train, y_train)
     predicoes = modelo.predict(X_test)
+    tempo_total = time.perf_counter() - inicio
 
     acc = accuracy_score(y_test, predicoes)
     _, _, f1, _ = precision_recall_fscore_support(y_test, predicoes, average='weighted', zero_division=0)
@@ -58,6 +64,7 @@ def treinar_e_avaliar_classificacao(modelo, X_train, y_train, X_test, y_test, no
     print(f"--- RESULTADOS DA CLASSIFICAÇÃO ({nome_modelo}) ---")
     print(f"{nome_modelo} -> Acurácia: {acc:.4f} | F1-Score: {f1:.4f}")
     print(f"Matriz de Confusão ({nome_modelo}):\n", confusion_matrix(y_test, predicoes), "\n")
+    print(f"Tempo total ({nome_modelo}): {tempo_total:.4f} s\n")
     
     return modelo
 
@@ -115,4 +122,4 @@ def gerar_arquivo_teste_cego(filepath_entrada: str, filepath_saida: str, scaler,
     # Exportando para CSV no formato exigido
     resultado_final.to_csv(filepath_saida, index=False)
     print(f"Arquivo '{filepath_saida}' gerado com sucesso!")
-
+    
