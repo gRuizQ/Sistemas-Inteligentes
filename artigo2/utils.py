@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-import time
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, accuracy_score, precision_recall_fscore_support, confusion_matrix
@@ -35,15 +36,13 @@ def treinar_e_avaliar_regressao(modelo, X_train, y_train, X_test, y_test, nome_m
     Treina um modelo de regressão e avalia usando RMSE.
     Retorna o modelo treinado.
     """
-    inicio = time.perf_counter()
     modelo.fit(X_train, y_train)
     predicoes = modelo.predict(X_test)
-    tempo_total = time.perf_counter() - inicio
     
     rmse = np.sqrt(mean_squared_error(y_test, predicoes))
     print(f"--- RESULTADOS DA REGRESSÃO ({nome_modelo}) ---")
     print(f"RMSE {nome_modelo}: {rmse:.4f}")
-    print(f"Tempo total ({nome_modelo}): {tempo_total:.4f} s\n")
+    print()
     
     return modelo
 
@@ -53,10 +52,8 @@ def treinar_e_avaliar_classificacao(modelo, X_train, y_train, X_test, y_test, no
     Treina um modelo de classificação e exibe Acurácia, F1-Score e Matriz de Confusão.
     Retorna o modelo treinado.
     """
-    inicio = time.perf_counter()
     modelo.fit(X_train, y_train)
     predicoes = modelo.predict(X_test)
-    tempo_total = time.perf_counter() - inicio
 
     acc = accuracy_score(y_test, predicoes)
     _, _, f1, _ = precision_recall_fscore_support(y_test, predicoes, average='weighted', zero_division=0)
@@ -64,7 +61,6 @@ def treinar_e_avaliar_classificacao(modelo, X_train, y_train, X_test, y_test, no
     print(f"--- RESULTADOS DA CLASSIFICAÇÃO ({nome_modelo}) ---")
     print(f"{nome_modelo} -> Acurácia: {acc:.4f} | F1-Score: {f1:.4f}")
     print(f"Matriz de Confusão ({nome_modelo}):\n", confusion_matrix(y_test, predicoes), "\n")
-    print(f"Tempo total ({nome_modelo}): {tempo_total:.4f} s\n")
     
     return modelo
 
@@ -123,3 +119,61 @@ def gerar_arquivo_teste_cego(filepath_entrada: str, filepath_saida: str, scaler,
     resultado_final.to_csv(filepath_saida, index=False)
     print(f"Arquivo '{filepath_saida}' gerado com sucesso!")
     
+def plotar_analise_regressao(y_true, y_pred, nome_modelo="Modelo Regressão"):
+    """
+    Gera gráficos de diagnóstico para modelos de regressão:
+    1. Gráfico de Dispersão (Reais vs. Preditos)
+    2. Gráfico de Erros
+    """
+    # Configurando o tamanho da figura para ter dois gráficos lado a lado
+    fig, eixos = plt.subplots(1, 2, figsize=(14, 5))
+    fig.suptitle(f'Análise de Desempenho - {nome_modelo}', fontsize=14, fontweight='bold')
+
+    # --- Gráfico 1: Valores Reais vs Valores Preditos ---
+    # O ideal é que os pontos fiquem o mais próximo possível da linha diagonal vermelha.
+    eixos[0].scatter(y_true, y_pred, alpha=0.6, color='dodgerblue', edgecolors='k')
+    
+    min_val = min(y_true.min(), y_pred.min())
+    max_val = max(y_true.max(), y_pred.max())
+    eixos[0].plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, label='Previsão')
+    
+    eixos[0].set_xlabel("Valores Reais (Gravidade)")
+    eixos[0].set_ylabel("Valores Preditos")
+    eixos[0].set_title("Reais vs Preditos")
+    eixos[0].legend()
+    eixos[0].grid(True, linestyle='--', alpha=0.7)
+
+    # --- Gráfico 2: Distribuição dos Erros ---
+    residuos = y_true - y_pred
+    eixos[1].scatter(y_pred, residuos, alpha=0.6, color='tomato', edgecolors='k')
+    eixos[1].axhline(y=0, color='black', linestyle='-', lw=2, label='Erro Zero')
+    
+    eixos[1].set_xlabel("Valores Preditos")
+    eixos[1].set_ylabel("Erros (Real - Predito)")
+    eixos[1].set_title("Análise de Erros")
+    eixos[1].legend()
+    eixos[1].grid(True, linestyle='--', alpha=0.7)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plotar_analise_classificacao(y_true, y_pred, nome_modelo="Modelo Classificação"):
+    """
+    Gera um Heatmap (Mapa de Calor) da Matriz de Confusão para avaliar 
+    os acertos e erros de cada classe específica.
+    """
+    plt.figure(figsize=(7, 5))
+    
+    # Calcula a matriz de confusão
+    cm = confusion_matrix(y_true, y_pred)
+    
+    # Plota usando o Seaborn para um visual mais limpo
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', linewidths=.5, cbar=True)
+    
+    plt.title(f'Matriz de Confusão - {nome_modelo}', fontsize=14, fontweight='bold')
+    plt.xlabel("Classe Predita (y'i)")
+    plt.ylabel('Classe Real (yi)')
+    
+    plt.tight_layout()
+    plt.show()

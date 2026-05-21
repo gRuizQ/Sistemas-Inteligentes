@@ -57,17 +57,6 @@ def _resolve_max_features(max_features: Optional[int | float], n_features: int) 
     raise ValueError("max_features inválido.")
 
 
-def _candidate_thresholds(feature_values: np.ndarray, max_candidates: int = 64) -> np.ndarray:
-    unique_vals = np.unique(feature_values)
-    if unique_vals.size <= 1:
-        return np.array([], dtype=float)
-    mids = (unique_vals[:-1] + unique_vals[1:]) / 2.0
-    if mids.size <= max_candidates:
-        return mids
-    idx = np.linspace(0, mids.size - 1, num=max_candidates, dtype=int)
-    return mids[idx]
-
-
 class CARTDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
